@@ -1,14 +1,9 @@
 package software.linking;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import hardware.CPU;
+
 import software.datatypes.Program;
 import software.datatypes.Protogram;
-import software.datatypes.StaticDataElement;
 
 public class Linker {
 
@@ -18,10 +13,13 @@ public class Linker {
 		
 		
 		
+		// Need the line number and instruction object for each j type, and each i type with a label in the immediate spot
 		
 		/*
 		 * 
-		 * NOT SURE HOW THIS IS SUPPOSED TO WORK RN TODO
+		 * I need to find the location of all of the jump and branch instructions, then I set the address or immediate
+		 * based on the value of the label in the label table. also should be some way to reference static data addresses 
+		 * as immediate for lw and sw and stuff
 		 * 
 		 */
 		

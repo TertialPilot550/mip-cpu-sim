@@ -32,6 +32,7 @@ public class InstructionTranslator {
 		return programInstructions;
 	}
 	
+	// ------------------------------------------------------------------
 	
 	/**
 	 * Translate one instruction of mips assembly into an integer representing the instruction
@@ -39,7 +40,7 @@ public class InstructionTranslator {
 	 * @return instruction
 	 * @throws Exception upon failure to translate
 	 */
-	public int translateText(String statement) throws Exception {	
+	private int translateText(String statement) throws Exception {	
 		Instruction ins = parseStatement(statement);
 		
 		// if opcode is 0b11_1111, return 0xFFFF to signal that the program should halt
@@ -49,9 +50,6 @@ public class InstructionTranslator {
 		return ins.value;
 	}
 	
-	
-	
-	// ------------------------------------------------------------------
 	
 	/*
 	 * Simple translating back and forth as utility functions before i continue to rebuild
@@ -113,6 +111,7 @@ public class InstructionTranslator {
 	
 		return new R_Instruction(rs, rt, rd, shamt, func);
 	}
+	// assumes valid instruction syntax
 	private Instruction parseIType(String[] fields) throws Exception {
 		
 		
@@ -121,7 +120,8 @@ public class InstructionTranslator {
 		int rs, immediate = 0;
 		int rt = MipsIsa.getRegNumber(fields[1]);
 
-		
+		// If the immediate doesn't start with number, then it's a label
+		boolean usesLabel = !Character.isDigit(fields[3].charAt(0));
 		boolean memoryOp = opcode == MipsIsa.getOpcode("lw") || opcode == MipsIsa.getOpcode("sw");
 		if (memoryOp) {
 			
@@ -135,22 +135,26 @@ public class InstructionTranslator {
 			
 			
 			rs = MipsIsa.getRegNumber(t[1].substring(0, t[1].length() - 1));
-			immediate = Integer.parseInt(t[0]);
+			if (!usesLabel) {
+				immediate = Integer.parseInt(t[0]);
+			}
 						
 		} else {
 			// addiu $t1 $t0 5
 			rt = MipsIsa.getRegNumber(fields[1]);
 			rs = MipsIsa.getRegNumber(fields[2]);
-			immediate = Integer.parseInt(fields[3]);
+			if (!usesLabel) {
+				immediate = Integer.parseInt(fields[3]);
+			}
 		}
 		
-		
-		return new I_Instruction(opcode, rs, rt, immediate);
+		I_Instruction result = new I_Instruction(opcode, rs, rt, immediate);
+		result.usesLabel = usesLabel;
+		return result;
 	}
 	private Instruction parseJType(String[] fields) {		
-		int opcode = MipsIsa.getOpcode(fields[0]);
-		int addr = Integer.parseInt(fields[1]);
-		return new J_Instruction(opcode, addr);
+		int opcode = MipsIsa.getOpcode(fields[0]);		
+		return new J_Instruction(opcode << 26);
 	}
 
 	

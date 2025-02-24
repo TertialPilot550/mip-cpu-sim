@@ -13,6 +13,7 @@ public class Instruction {
 	
 	public int value;
 	public int opcode;
+	public boolean usesLabel = false;
 	
 	public Instruction(int val) {
 		this.value = val;

@@ -13,6 +13,7 @@ public class J_Instruction extends Instruction {
 	// Construct from components
 	public J_Instruction(int opcode, int address) {
 		super(-1);
+		this.usesLabel = true;
 		int instruction = 0;
 
 		// opcode is always zero
@@ -25,6 +26,7 @@ public class J_Instruction extends Instruction {
 	// Construct from integer
 	public J_Instruction(int instruction) {
 		super(instruction);
+		this.usesLabel = true;
 		// Find fields
 		opcode = copyBitField(instruction, 31, 26);
 		address = copyBitField(instruction, 25, 0);
