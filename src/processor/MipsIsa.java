@@ -1,49 +1,72 @@
 package processor;
 
+import datatypes.Instruction;
+import datatypes.I_Instruction;
+import datatypes.J_Instruction;
+import datatypes.R_Instruction;
 
 public interface MipsIsa {
 
-	final int $0 = 0;
-	final int $at = 1;
 	
-	final int $v0 = 2;
-	final int $v1 = 3;
+	public final int NUMBER_OF_REGISTERS = 32;
 	
-	final int $a0 = 4;
-	final int $a1 = 5;
-	final int $a2 = 6;
-	final int $a3 = 7;
+	public final int $0 = 0;
+	public final int $at = 1;
 	
-	final int $t0 = 8;
-	final int $t1 = 9;
-	final int $t2 = 10;
-	final int $t3 = 11;
-	final int $t4 = 12;
-	final int $t5 = 13;
-	final int $t6 = 14;
-	final int $t7 = 15;
+	public final int $v0 = 2;
+	public final int $v1 = 3;
 	
-	final int $s0 = 16;
-	final int $s1 = 17;
-	final int $s2 = 18;
-	final int $s3 = 19;
-	final int $s4 = 20;
-	final int $s5 = 21;
-	final int $s6 = 22;
-	final int $s7 = 23;
+	public final int $a0 = 4;
+	public final int $a1 = 5;
+	public final int $a2 = 6;
+	public final int $a3 = 7;
 	
-	final int $t8 = 24;
-	final int $t9 = 25;
+	public final int $t0 = 8;
+	public final int $t1 = 9;
+	public final int $t2 = 10;
+	public final int $t3 = 11;
+	public final int $t4 = 12;
+	public final int $t5 = 13;
+	public final int $t6 = 14;
+	public final int $t7 = 15;
 	
-	final int $k0 = 26;
-	final int $k1 = 27;
-	final int gp  = 28;
-	final int sp = 29;
-	final int fp = 30;
+	public final int $s0 = 16;
+	public final int $s1 = 17;
+	public final int $s2 = 18;
+	public final int $s3 = 19;
+	public final int $s4 = 20;
+	public final int $s5 = 21;
+	public final int $s6 = 22;
+	public final int $s7 = 23;
+	
+	public final int $t8 = 24;
+	public final int $t9 = 25;
+	
+	public final int $k0 = 26;
+	public final int $k1 = 27;
+	public final int gp  = 28;
+	public final int sp = 29;
+	public final int fp = 30;
 	final int ra = 31;
 	
+	/**
+	 * Execute an instruction on this object which implements
+	 * the mips isa
+	 * @param instruction
+	 */
+	public default void execute(Instruction instruction) {
+		System.out.printf("ATTEMPTING TO EXECUTE: %x\n", instruction);
+		if (instruction.opcode == 0) {
+			executeRType((R_Instruction) instruction);
+		} else if (instruction.opcode == 2 || instruction.opcode == 3) {
+			executeJType((J_Instruction) instruction);
+		} else {
+			executeIType((I_Instruction) instruction);	
+		}
+	}
+	
 	// R - type
-	public void add(int Rd, int Rs, int Rt);
+	public void add(int Rd, int Rs, int Rt) throws Exception;
 	public void addu(int Rd, int Rs, int Rt);
 	
 	public void and(int Rd, int Rs, int Rt);
@@ -60,200 +83,124 @@ public interface MipsIsa {
 	
 	public void sub(int Rd, int Rs, int Rt);
 	public void subu(int Rd, int Rs, int Rt);
-	
-	public default void execute(int instruction) {
-		System.out.printf("ATTEMPTING TO EXECUTE: %x\n", instruction);
-		
-		int opcode = copyBitField(instruction, 31, 26);
-		if (opcode == 0) {
-			executeRType(instruction);
-		} else if (opcode == 2 || opcode == 3) {
-			executeJType(instruction);
-		} else {
-			executeIType(instruction);
-		}
-		
-		
-		
-	}
-	
-	// opcode (31:26) Rs(25:21) Rt (20:16) Rd (15:11) shamt (10:6) funct (5:0)
-	default void executeRType(int instruction) {
-		int Rs = copyBitField(instruction, 25, 21);
-		int Rt = copyBitField(instruction, 20, 16);
-		int Rd = copyBitField(instruction, 15, 11);
-		int shamt = copyBitField(instruction, 10, 6); // not accounted for yet TODO
-		int funct = copyBitField(instruction, 5, 0);
-		System.out.println("[" + Rs + " " + Rt + " " + Rd + " " + shamt + " " + funct + "]");
-		switch (funct) {
-		
-		
+	default void executeRType(R_Instruction instruction) {
+		System.out.println("[" + instruction.rs + " " + instruction.rt + " " + instruction.rd + " " + instruction.shamt + " " + instruction.func + "]");
+		switch (instruction.func) {
 		case 0x20:
-			add(Rd, Rs, Rt);
+			try {
+				add(instruction.rd, instruction.rs, instruction.rt);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			return;
-			
 		case 0x21: 
-			addu(Rd, Rs, Rt);
-			
+			addu(instruction.rd, instruction.rs, instruction.rt);
 		case 0x24:
-			and(Rd, Rs, Rt);
+			and(instruction.rd, instruction.rs, instruction.rt);
 			return;
-			
 		case 0x8:
-			jr(Rs);
+			jr(instruction.rs);
 			return;
-			
 		case 0x27:
-			nor(Rd, Rs, Rt);
+			nor(instruction.rd, instruction.rs, instruction.rt);
 			return;
-		
 		case 0x25:
-			or(Rd, Rs, Rt);
+			or(instruction.rd, instruction.rs, instruction.rt);
 			return;
-			
 		case 0x2a:
-			slt(Rd, Rs, Rt);
+			slt(instruction.rd, instruction.rs, instruction.rt);
 			return;
-			
 		case 0x2b:
-			sltu(Rd, Rs, Rt);
+			sltu(instruction.rd, instruction.rs, instruction.rt);
 			return;
-			
 		case 0x00:
-			sll(Rd, Rs, shamt);
+			sll(instruction.rd, instruction.rs, instruction.rt);
 			return;
-			
 		case 0x02:
-			srl(Rd, Rs, shamt);
+			srl(instruction.rd, instruction.rs, instruction.rt);
 			return;
-			
 		case 0x22:
-			sub(Rd, Rs, Rt);
+			sub(instruction.rd, instruction.rs, instruction.rt);
 			return;
-			
 		case 0x23:
-			subu(Rd, Rs, Rt);
+			subu(instruction.rd, instruction.rs, instruction.rt);
 			return;
 		}
 	}
 	
 	// I-Type
-	
 	public void addi(int Rd, int Rs, int Immediate);
 	public void addiu(int Rd, int Rs, int Immediate);
-	
 	public void andi(int Rd, int Rs, int Immediate);
 	public void ori(int Rd, int Rs, int Immediate);
-
 	public void beq(int Rd, int Rs, int Immediate);
 	public void bne(int Rd, int Rs, int Immediate);
-	
 	public void lbu(int Rd, int Rs, int Immediate);
 	public void lhu(int Rd, int Rs, int Immediate);
 	public void ll(int Rd, int Rs, int Immediate);
 	public void lui(int Rd, int Immediate);
 	public void lw(int Rd, int Rs, int Immediate);
-	
 	public void sb(int Rd, int Rs, int Immediate);
 	public void sc(int Rd, int Rs, int Immediate);
 	public void sh(int Rd, int Rs, int Immediate);
 	public void sw(int Rd, int Rs, int Immediate);
-	
-	// opcode (31:26) Rs(25:21) Rt (20:16) Immediate (15:0)
-	default void executeIType(int instruction) {
-		System.out.println("II");
-
-		int opcode = copyBitField(instruction, 31, 26);
-		int Rs = copyBitField(instruction, 25, 21);
-		int Rt = copyBitField(instruction, 20, 16);
-		int Immediate = copyBitField(instruction, 15, 0);
-		System.out.println("[" + opcode + " " + Rs + " " + Rt + " " + Immediate + "]");
-
-		switch (opcode) {
-		
+	default void executeIType(I_Instruction instruction) {		
+		switch (instruction.opcode) {
 		case 0x8:
-			addi(Rs, Rt, Immediate);
+			addi(instruction.rs, instruction.rt, instruction.immediate);
 			return;
 		case 0x9:
-			addiu(Rs, Rt, Immediate);
+			addiu(instruction.rs, instruction.rt, instruction.immediate);
 			return;
 		case 0xc:
-			andi(Rs, Rt, Immediate);
+			andi(instruction.rs, instruction.rt, instruction.immediate);
 			return;
 		case 0x4:
-			beq(Rs, Rt, Immediate);
+			beq(instruction.rs, instruction.rt, instruction.immediate);
 			return;
 		case 0x5:
-			bne(Rs, Rt, Immediate);
+			bne(instruction.rs, instruction.rt, instruction.immediate);
 			return;
-			
 		case 0xf:
-			lui(Rs, Immediate);
+			lui(instruction.rs, instruction.immediate);
 			return;
-			
 		case 0x23:
-			lw(Rs, Rt, Immediate);
+			lw(instruction.rs, instruction.rt, instruction.immediate);
 			return;
-			
 		case 0xd:
-			ori(Rs, Rt, Immediate);
+			ori(instruction.rs, instruction.rt, instruction.immediate);
 			return;
-			
 		case 0xa:
 			//slti(Rs, Rt, Immediate); TODO
 			return;
-			
 		case 0xb:
 			//sltiu(Rs, Rt, Immediate); TODO
 			return;
-			
 		case 0x2b:
-			sw(Rs, Rt, Immediate);
+			sw(instruction.rs, instruction.rt, instruction.immediate);
 			return;
 		}
 	}
 	
-	
 	// J-Type
-	
 	void jal(int addr);
 	void j(int addr);
-	
-	
-	
-	
-	
-	// opcode (31:26) address (25:0)
-	default void executeJType(int instruction) {		
-		int opcode = copyBitField(instruction, 31, 26);
-		int addr = copyBitField(instruction, 25, 0);
-		
-		if (opcode == 2) {
-			j(addr);
-		} else if (opcode == 3) {
-			jal(addr);
+	default void executeJType(J_Instruction instruction) {		
+		if (instruction.opcode == 2) {
+			j(instruction.address);
+		} else if (instruction.opcode == 3) {
+			jal(instruction.address);
 		}
-		
 	}
-	
-	public static int copyBitField(int src, int lInd, int rInd) {
-		// 0x0000.0000
-	    src >>= rInd;
-	    // construct a bit string of the appropriate length
-	    int len = lInd - rInd;
-	    System.out.println("Len: " + len);
-	    // 2^n - 1 = n bit number with all digits as 1
-	    int lenBitsOfOne = (int) (Math.pow(2, len) - 1);
-	    // Preserve the bits you mean too, clear the rest
-	    System.out.print(Integer.toBinaryString(src) + "&");
-	    System.out.print(Integer.toBinaryString(lenBitsOfOne) + "=");
-	    System.out.println(Integer.toBinaryString(lenBitsOfOne & src));
 
-	    return lenBitsOfOne & src;
-	    
-	}
 	
-	public static int getFunct(String command) {
+	/*
+	 * 
+	 * Simple translation functions
+	 * 
+	 */
+	
+	public static int translateInsToFunc(String command) {
 		if (getOpcode(command) != 0) {
 			return 0;
 		} else if (command.toLowerCase().equals("add")) {
@@ -354,6 +301,62 @@ public interface MipsIsa {
 			return 0;
 			
 		}
+	}
+	
+	public static String getInstructionName(Instruction ins) {
+		
+		if (ins.isJType()) {
+			if (ins.opcode == 2) {
+				return "j";
+			} else {
+				return "jal";
+			}
+		}
+		
+		if (ins.isIType()) {
+			switch (ins.opcode) {
+			case 0x08: return "addi";
+			case 0x09: return "addiu";
+			case 0x0c: return "andi";
+			case 0x04: return "beq";
+			case 0x05: return "bne";
+			case 0x24: return "lbu";
+			case 0x25: return "lhu";
+			case 0x30: return "ll";
+			case 0x0f: return "lui";
+			case 0x23: return "lw";
+			case 0x0d: return "ori";
+			case 0x0a: return "slti";
+			case 0x0b: return "sltiu";
+			case 0x28: return "sb";
+			case 0x38: return "sc";
+			case 0x29: return "sh";
+			case 0x2b: return "sw";
+			}
+		}
+		
+		// is R type
+		switch (((R_Instruction) ins).func) {
+		case 0x20: return "add";
+		case 0x21: return "addu";
+		case 0x24: return "and";
+		case 0x08: return "jr";
+		case 0x27: return "nor";
+		case 0x25: return "or";
+		case 0x2a: return "slt";
+		case 0x2b: return "sltu";
+		case 0x00: return "sll";
+		case 0x02: return "srl";
+		case 0x22: return "sub";
+		case 0x23: return "subu";
+		}
+		
+		if (ins.isHalt()) {
+			return "halt";
+		}
+		
+		return "TRANSLATION_FAILURE";
+		
 	}
 
 	public static int getOpcode(String command) {

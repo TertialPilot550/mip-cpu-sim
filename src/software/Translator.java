@@ -2,44 +2,34 @@ package software;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
+
+import datatypes.Instruction;
+import datatypes.R_Instruction;
+import datatypes.StaticDataElement;
+import datatypes.I_Instruction;
+import datatypes.J_Instruction;
 
 import processor.MipsIsa;
 
+/**
+ * Class that can cleanly convert singular assembly statements and lists of statements.
+ */
+
 public class Translator {
-	
-	public static String seperateInstruction(int instruction) {
-		
-		String ins = Integer.toBinaryString(instruction);
-		
-		// fill it out with zeros
-		while (ins.length() < 32) {
-			ins = "0" + ins;
-		}
-		
-		int opcode = Integer.parseUnsignedInt(ins.substring(0, 6));
-		
-		if (opcode == 0) 
-			// opcode (31:26) Rs(25:21) Rt (20:16) Rd (15:11) shamt (10:6) funct (5:0)
-			return ins.substring(0, 6) + " " + ins.substring(6, 11) + " " + ins.substring(11, 16) + " " + 
-					ins.substring(16, 21) + " " + ins.substring(21, 26) + " " + ins.substring(26);
-		else if (opcode == 2 || opcode == 3)
-			// opcode (31:26) address (25:0)
-			return ins.substring(0, 6) + " " + ins.substring(6);
-		else
-			// opcode (31:26) Rs(25:21) Rt (20:16) Immediate (15:0)
-			return ins.substring(0, 6) + " " + ins.substring(6, 11) + " " + ins.substring(11, 16) + " " + ins.substring(16);
-	}
-	
+
 	/**
 	 * Translate a list of mips assembly statements into a list of integers representing the instructions
 	 * @param statements
 	 * @return
 	 * @throws Exception
 	 */
-	public ArrayList<Integer> translateStatements(ArrayList<String> statements) throws Exception {
-		ArrayList<Integer> programInstructions = new ArrayList<Integer>();
+	public List<Integer> translateTextStatements(List<String> statements) throws Exception {
+		List<Integer> programInstructions = new ArrayList<Integer>();
 		for (String statement : statements) {
-			programInstructions.add(translate(statement));
+			programInstructions.add(translateText(statement));
 		}
 		return programInstructions;
 	}
@@ -51,44 +41,185 @@ public class Translator {
 	 * @return instruction
 	 * @throws Exception upon failure to translate
 	 */
-	public int translate(String statement) throws Exception {
-		String[] fields = statement.split(" ");
-		if (fields.length == 0) {
-			return 0;
-		}
+	public int translateText(String statement) throws Exception {	
+		Instruction ins = parseStatement(statement);
 		
-		// return 0xFFFF to signal that the program should halt
-		if (fields.length == 1 && fields[0].equals("halt")) {
-			return 0xFFFF_FFFF;
-		}
+		// if opcode is 0b11_1111, return 0xFFFF to signal that the program should halt
+		if (ins.opcode == 0x3F) return 0xFFFF_FFFF;
 		
-		int opcode = MipsIsa.getOpcode(fields[0]);	
-		if (opcode == 0) {
-			return translateRType(fields);
-		} else if (opcode == 2 || opcode == 3) {
-			return translateJType(fields);
-		} else {
-			return translateIType(fields);
-		}	
+		// Otherwise, return the value of the instruction
+		return ins.value;
 	}
 	
-	private int translateJType(String[] fields) {
-		int instruction = 0;
+	
+	public HashMap<String, Integer[]> translateDataStatements(ArrayList<String> statements) throws Exception {
+		HashMap<String, Integer[]> staticData = new HashMap<String, Integer[]>();
+				
+		for (String statement: statements) {
+			StaticDataElement e = translateData(statement);
+			staticData.put(e.label, e.values);
+		}
 		
+		return staticData;
+	}
+	
+	
+	// parse one line of static data declaration
+	
+	// I can pass the type and 
+	
+	// .word, .space(general storage), .asciiz
+	// for now, assume that everything is clean in this statement, so the following format:
+	// label: .type "value"
+	public StaticDataElement translateData(String statement) throws Exception {
+		Scanner scan = new Scanner(statement);
+		
+		if (!scan.hasNext()) {
+			scan.close();
+			throw new Exception("Error parsing static data, improper number of element per line.");
+		}
+		
+		
+		String label = scan.next();
+		
+		
+		if (!scan.hasNext()) {
+			scan.close();
+			throw new Exception("Error parsing static data, improper number of element per line.");
+		}
+		
+		String type = scan.next();
+		
+		if (!scan.hasNext()) {
+			scan.close();
+			throw new Exception("Error parsing static data, improper number of element per line.");
+		}
+		
+		// take the rest of the values to parse them into a proper list of values that will be inserted into memory
+		// based on it's length and associated with it's label
+		String values = scan.nextLine();
+		int[] wordValues = encodeData(type, values);
+		
+		scan.close();
+		
+		return new StaticDataElement(label, wordValues);
+		
+		
+		
+	}
+	
+	
+	// expecting a string of format x, y, z where x y z and z are the appropriate types
+	private int[] encodeData(String type, String values) throws Exception {
+		String[] v = values.split(",");
+		int[] result = null;
+		
+		if (type.equals(".space")) {
+			int numReservedWords = Integer.parseInt(values);
+			result = new int[numReservedWords];
+		} else if (type.equals(".asciiz")) {
+			
+			// take off first and last characters
+			String valueNoQuotes = values.substring(1, values.length() - 2);
+			
+			// Assign result size
+			result = new int[valueNoQuotes.length() + 1]; // null terminate
+			result[valueNoQuotes.length()] = 0;
+			
+			// For each character, put the numeric value at the next spot starting at index 0
+			int i = 0;
+			for (char c : valueNoQuotes.toCharArray()) {
+				result[i++] = Character.getNumericValue(c);
+			}
+			
+			
+		} else if (type.equals(".word")) {
+			result = new int[v.length];
+		
+			for (int i = 0; i < v.length; i++) {
+				String sVal = v[i].trim();
+			
+				
+				
+				if (sVal.endsWith(",")) {
+					sVal = sVal.substring(0, sVal.length() - 1);
+				}
+			
+			
+				result[i] = Integer.parseInt(sVal);
+			}
+		
+		}
+	
+		return result;
+		
+		
+	}
+	
+	
+	// ------------------------------------------------------------------
+	
+	/*
+	 * Simple translating back and forth as utility functions before i continue to rebuild
+	 */
+	
+	private Instruction parseStatement(String statement) throws Exception {
+		String[] fields = statement.split(" ");
+		
+		// strip commas
+		for (int i = 0; i < fields.length; i++) {
+			if (fields[i].endsWith(",")) {
+				fields [i] = fields[i].substring(0, fields[i].length());
+			}
+		}
+		
+		// handle by instruction type
 		int opcode = MipsIsa.getOpcode(fields[0]);
-		int addr = Integer.parseInt(fields[1]);
-		
-		instruction += (opcode << 26);
-		instruction += addr;
-		
-		return instruction;
+		if (opcode == 0) {
+			// r type
+			return parseRType(fields);
+		} else if (opcode == 2 || opcode == 3) {
+			// j type
+			return parseJType(fields);
+		} else {
+			// i type
+			return parseIType(fields);
+		}
 	}
 
+	private Instruction parseRType(String[] fields) throws Exception {		
+		// opcode (31:26) Rs(25:21) Rt (20:16) Rd (15:11) shamt (10:6) funct (5:0)
+		
+		if (fields.length > 4 || fields.length < 4) {
+			throw new Exception("Improper argument count translating r-type statement: " + Arrays.toString(fields));
+		}
+		
+		int opcode = MipsIsa.getOpcode(fields[0]);
+		int rs = 0, rt = 0;
+		int shamt = 0;
+		int rd = MipsIsa.getRegNumber(fields[1]);
+		int func = MipsIsa.translateInsToFunc(fields[0]);
+		
+		boolean shiftOperation = opcode == MipsIsa.getOpcode("sll") || opcode == MipsIsa.getOpcode("srl");
+		if (shiftOperation) {
+			// Set shift amount. No rs
+			shamt = Integer.parseInt(fields[3]);
+			rs = MipsIsa.getRegNumber(fields[2]);
+		
+		} else {
+			// 
+			rs = MipsIsa.getRegNumber(fields[2]);
+			rt = MipsIsa.getRegNumber(fields[3]);
 
-	private int translateIType(String[] fields) throws Exception {
-		int instruction = 0;
+		}
 		
-		
+		if (func == -1) {
+			throw new Exception("Exception translating R-Type Instruction");
+		}
+	
+		return new R_Instruction(rs, rt, rd, shamt, func);
+	}
+	private Instruction parseIType(String[] fields) throws Exception {
 		
 		
 		int opcode = MipsIsa.getOpcode(fields[0]);
@@ -119,75 +250,15 @@ public class Translator {
 			immediate = Integer.parseInt(fields[3]);
 		}
 		
-		instruction += (opcode << 26);
-		instruction += (rs << 21);
-		instruction += (rt << 16);
-		instruction += immediate;
-		return instruction;
+		
+		return new I_Instruction(opcode, rs, rt, immediate);
 	}
-
-
-	
-
-
-	private int translateRType(String[] fields) throws Exception {
-		int instruction = 0;
-		
-		// opcode (31:26) Rs(25:21) Rt (20:16) Rd (15:11) shamt (10:6) funct (5:0)
-		
-		if (fields.length > 4 || fields.length < 4) {
-			throw new Exception("Improper argument count translating r-type statement: " + Arrays.toString(fields));
-		}
-		
+	private Instruction parseJType(String[] fields) {		
 		int opcode = MipsIsa.getOpcode(fields[0]);
-		int rs = 0, rt = 0;
-		int shamt = 0;
-		int rd = MipsIsa.getRegNumber(fields[1]);
-		int funct = MipsIsa.getFunct(fields[0]);
-		
-		boolean shiftOperation = opcode == MipsIsa.getOpcode("sll") || opcode == MipsIsa.getOpcode("srl");
-		if (shiftOperation) {
-			shamt = Integer.parseInt(fields[3]);
-			rt = MipsIsa.getRegNumber(fields[2]);
-		
-		} else {
-			rs = MipsIsa.getRegNumber(fields[2]);
-			rt = MipsIsa.getRegNumber(fields[3]);
-
-		}
-		
-		if (funct == -1) {
-			throw new Exception("Exception translating R-Type Instruction");
-		}
-
-		instruction += (rs << 21);
-		instruction += (rt << 16);
-		instruction += (rd << 11);
-		instruction += (shamt << 6);
-		instruction += funct;
-	
-		return instruction;
+		int addr = Integer.parseInt(fields[1]);
+		return new J_Instruction(opcode, addr);
 	}
 
+	
+	
 }
-
-// Verification
-
-// add
-// 0b00000000111010100001000000100000 <- expected
-//			 111010100001000000100000
-
-
-// addi
-// 0b00100001001011010000000000010000 <- expected
-//     100001001011010000000000010000
-
-
-// j 100
-// 0b00001000000000000000000001100100 <- expected
-// 		 1000000000000000000001100100
-
-
-// lw $t3 5($t5)
-// 0b10001101101010110000000000000101 <- expected
-//   10001101101010110000000000000101

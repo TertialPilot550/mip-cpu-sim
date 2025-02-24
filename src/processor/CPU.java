@@ -2,31 +2,31 @@ package processor;
 
 import java.util.ArrayList;
 
-import software.Program;
+import datatypes.Instruction;
+import datatypes.Program;
+import exceptions.OverflowException;
 import software.Translator;
 
 public class CPU implements MipsIsa {
 	
-	private int R[]; // Registers
-	private int M[]; // Memory
-	private int PC;  // Program Counter
+	// RAM Details
+	public final int PC_STARTING_ADDRESS = 0x0040_0000; 
+	public final int STATIC_DATA = 0x1000_0000;
+	public final int START_DYNAMIC_DATA = 0x1000_8000;
+	public final int END_DYNAMIC_DATA = 0x07fff_fffc;
+	public final int RAM_ADDRESS_SPACE = 0x7fff_fffd; // number of addresses
 	
-	/**
-	 * Memory Structure:
-	 * 
-	 * Data:
-	 * [0x0000 -> 0x00FF]
-	 * Text:
-	 * [0x0100 -> 0x0FFF]
-	 * 
-	 * dynamic memory : stack and heap
-	 * [0x1000 -> 0xFFFF]
-	 */
+	private int R[]; // Registers
+	private int M[]; // Random Access Memory
+	private int PC;  // Program Counter
+	// TODO to store permanent information, use files in a directory in the project
+	
+	public boolean debug_mode = true;
 	
 	public CPU() {
-		PC = 0x0100;          // Initialize Program Counter
-		R = new int[32];   // Initialize Registers
-		M = new int[262144]; // Initialize memory 2^18 ~ 262 kb
+		PC = PC_STARTING_ADDRESS;          // Initialize Program Counter
+		R = new int[NUMBER_OF_REGISTERS];   // Initialize Registers
+		M = new int[RAM_ADDRESS_SPACE]; // Initialize memory 2^18 ~ 262 kb
 	}
 	
 	// start executing code in a fetch decode execute cycle starting at the default address of 0x0100
@@ -38,19 +38,19 @@ public class CPU implements MipsIsa {
 	 * Main loop for function of the cpu
 	 */
 	private void fetchExecuteLoop() {
-		boolean debug = true;
 		int i = 0; // cycle count
-		while (PC <= 0x1000) {				// run	
-			int instruction = M[PC];		// fetch
+		while (PC <= STATIC_DATA) {							// run	
+			Instruction ins = new Instruction(M[PC]);		// fetch
 			
-			if (debug) {
-				System.out.printf("[%d] Instruction: %x - %s\n", i, instruction, Translator.seperateInstruction(instruction));
+			if (debug_mode) {
+				System.out.printf("[%d] Instruction: %x - %s\n", i, ins, ins.getASM());
 			}
 			
-			if (instruction == 0xFFFFFFFF)   	// Sentinel, halt program execution
+			
+			if (ins.value == 0xFFFFFFFF)   	// Sentinel, halt program execution
 				break;
 			
-			execute(instruction);			// execute
+			execute(ins);			// execute
 			PC++;
 			i++;
 		}
@@ -65,15 +65,24 @@ public class CPU implements MipsIsa {
 	 * @throws Exception 
 	 */
 	public void flash(Program p) throws Exception {
-		if (p.getRawInstructions().size() >= 0x0EFF) {
+		if (p.instructions.size() >= STATIC_DATA - PC_STARTING_ADDRESS) { 
+			
 			throw new Exception("Program too large, flash failed.");
 		}
-		loadMemory(p.getRawInstructions() , 0x0100);
+		loadMemory(p.instructions , PC_STARTING_ADDRESS);
+		
+		
+		//TODO load static data
 	}
 	
 	@Override
-	public void add(int Rd, int Rs, int Rt) {
-		R[Rd] = R[Rs] + R[Rt]; // Doesn't cause interrupt for now TODO
+	public void add(int Rd, int Rs, int Rt) throws Exception {
+		R[Rd] = R[Rs] + R[Rt]; 
+		
+		boolean didOverflow = (R[Rs] < 0 && R[Rt] < 0 && R[Rd] > 0) || (R[Rs] > 0 && R[Rt] > 0 && R[Rd] < 0);
+		if (didOverflow) {
+			throw new OverflowException();
+		} 
 	}
 
 	@Override
@@ -103,13 +112,14 @@ public class CPU implements MipsIsa {
 
 	@Override
 	public void slt(int Rd, int Rs, int Rt) {
-		R[Rd] = (Rs < Rt) ? 1 : 0; // currently the same as the unsigned version TODO
+		R[Rd] = (Rs < Rt) ? 1 : 0; 
 	}
 
 	@Override
 	public void sltu(int Rd, int Rs, int Rt) {
-		R[Rd] = (Rs < Rt) ? 1 : 0;
+		R[Rd] = (Integer.toUnsignedLong(Rs) < Integer.toUnsignedLong(Rt)) ? 1 : 0;
 	}
+	
 
 	@Override
 	public void sll(int Rd, int Rs, int shamt) {

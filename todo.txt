@@ -1,0 +1,2 @@
+Incorporate static data, labels into the assembler and jump instructions
+

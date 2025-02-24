@@ -1,10 +1,9 @@
 
 package main;
 
+import datatypes.Program;
 import processor.CPU;
-import processor.MipsIsa;
 import software.Assembler;
-import software.Program;
 
 public class Simulator {
 
