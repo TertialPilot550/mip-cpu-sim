@@ -1,4 +1,4 @@
-package datatypes;
+package software.datatypes;
 
 public class StaticDataElement {
 	

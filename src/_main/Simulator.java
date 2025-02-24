@@ -1,14 +1,17 @@
 
-package main;
+package _main;
 
-import datatypes.Program;
-import processor.CPU;
-import software.Assembler;
+import hardware.CPU;
+import software.assembly.Assembler;
+import software.datatypes.Program;
+import software.datatypes.Protogram;
+import software.linking.Linker;
 
 public class Simulator {
 
 	// Static resources
 	private static Assembler asm;
+	private static Linker link;
 	private static CPU cpu;
 		
 	// init static resources
@@ -29,8 +32,9 @@ public class Simulator {
 	
 	public static void runProgram(String filepath) throws Exception {
 		
-		Program p = asm.assemble(filepath);
-		cpu.flash(p);
+		Protogram p = asm.assemble(filepath);
+		Program pFinal = link.link(p);
+		cpu.loadProgram(pFinal);
 		cpu.start();
 				
 	}

@@ -3,3 +3,9 @@
 /processor/
 /datatypes/
 /exceptions/
+/assembly/
+/linking/
+/s_assembly/
+/s_linking/
+/hardware/
+/_main/

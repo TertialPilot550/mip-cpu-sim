@@ -1,9 +1,9 @@
-package processor;
+package hardware;
 
-import datatypes.Instruction;
-import datatypes.I_Instruction;
-import datatypes.J_Instruction;
-import datatypes.R_Instruction;
+import hardware.datatypes.I_Instruction;
+import hardware.datatypes.Instruction;
+import hardware.datatypes.J_Instruction;
+import hardware.datatypes.R_Instruction;
 
 public interface MipsIsa {
 

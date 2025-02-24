@@ -1,6 +1,6 @@
-package datatypes;
+package hardware.datatypes;
 
-import processor.MipsIsa;
+import hardware.MipsIsa;
 
 /**
  * Use this data type to greatly simplify dealing with instructions and conversions

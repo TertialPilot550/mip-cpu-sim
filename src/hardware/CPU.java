@@ -1,27 +1,35 @@
-package processor;
+package hardware;
 
-import java.util.ArrayList;
 
-import datatypes.Instruction;
-import datatypes.Program;
-import exceptions.OverflowException;
-import software.Translator;
+import hardware.datatypes.Instruction;
+import hardware.exceptions.OverflowException;
+import software.datatypes.Program;
+
+/**
+ * Class which represents the hardware control structure. 
+ * 
+ * Contains registers, ram, fetch execute cycle, and all instruction definitions.
+ * 
+ * @sammc
+ */
 
 public class CPU implements MipsIsa {
 	
+	// Debug mode?
+	public static final boolean debug_mode = true;
+	
 	// RAM Details
-	public final int PC_STARTING_ADDRESS = 0x0040_0000; 
-	public final int STATIC_DATA = 0x1000_0000;
-	public final int START_DYNAMIC_DATA = 0x1000_8000;
-	public final int END_DYNAMIC_DATA = 0x07fff_fffc;
-	public final int RAM_ADDRESS_SPACE = 0x7fff_fffd; // number of addresses
+	public static final int PC_STARTING_ADDRESS = 0x0040_0000; 
+	public static final int STATIC_DATA = 0x1000_0000;
+	public static final int START_DYNAMIC_DATA = 0x1000_8000;
+	public static final int END_DYNAMIC_DATA = 0x07fff_fffc;
+	public static final int RAM_ADDRESS_SPACE = 0x7fff_fffd; // number of addresses
 	
 	private int R[]; // Registers
 	private int M[]; // Random Access Memory
 	private int PC;  // Program Counter
 	// TODO to store permanent information, use files in a directory in the project
 	
-	public boolean debug_mode = true;
 	
 	public CPU() {
 		PC = PC_STARTING_ADDRESS;          // Initialize Program Counter
@@ -59,20 +67,22 @@ public class CPU implements MipsIsa {
 	}
 	
 	/**
-	 * Flash a compiled program object into the cpu simulation's memory at the default text address
+	 * Loads a assembled and linked program object into the cpu simulation's memory at the default text address
 	 * 
 	 * @param p
 	 * @throws Exception 
 	 */
-	public void flash(Program p) throws Exception {
-		if (p.instructions.size() >= STATIC_DATA - PC_STARTING_ADDRESS) { 
-			
-			throw new Exception("Program too large, flash failed.");
+	public void loadProgram(Program p) throws Exception {
+		if (p.bin.length >= STATIC_DATA - PC_STARTING_ADDRESS) { 
+			throw new Exception("Program too large, load failed.");
 		}
-		loadMemory(p.instructions , PC_STARTING_ADDRESS);
-		
-		
-		//TODO load static data
+		if (p.bin.length >= START_DYNAMIC_DATA - STATIC_DATA) { 
+			throw new Exception("Data too large, load failed.");
+		}
+		// load static data
+		loadMemory(p.staticData, STATIC_DATA);
+		// load instructions
+		loadMemory(p.bin , PC_STARTING_ADDRESS);
 	}
 	
 	@Override
@@ -167,7 +177,7 @@ public class CPU implements MipsIsa {
 		
 	}
 
-	@Override
+	@Override // TODO FIX THIS TO DO RELATIVE ADDRESSING
 	public void beq(int Rs, int Rt, int Immediate) {
 		if (R[Rs] == R[Rt]) {
 			// branch
@@ -234,35 +244,35 @@ public class CPU implements MipsIsa {
 		M[R[Rs] + Immediate] = R[Rd];	
 	}
 
-	@Override
+	@Override // TODO this is not right
 	public void jal(int addr) {
 		R[$at] = PC + 1;
 		PC = addr;
 	}
 
-	@Override
+	@Override // TODO this is not right
 	public void j(int addr) {
 		PC = addr;
 	}
 	
 	/**
-	 *  Loads the given list of Integer values into memory starting at
+	 *  Loads the given array of Integer values into memory starting at
 	 *  the provided address.
 	 *  
-	 *  @param ArrayList<Integer> payload, to load into memory at...
+	 *  @param ArrayList<Integer> pay load, to load into memory at...
 	 *  @param int address
 	 * @throws Exception 
 	 */
-	public void loadMemory(ArrayList<Integer> payload, int address) throws Exception {
-		// If the payload is too large for it's specified place in memory...
-		if (payload.size() + address > M.length) {
+	public void loadMemory(int[] instructions, int address) throws Exception {
+		// If the pay load is too large for it's specified place in memory...
+		if (instructions.length + address > M.length) {
 			// then don't do it
 			throw new Exception("Not enough room for memory load at address " + address);
 		}
 		
 		// otherwise load it up!
-		for (int i = 0; i < payload.size(); i++) {
-			M[address + i] = payload.get(i);
+		for (int i = 0; i < instructions.length; i++) {
+			M[address + i] = instructions[i];
 		}
 	}
 	

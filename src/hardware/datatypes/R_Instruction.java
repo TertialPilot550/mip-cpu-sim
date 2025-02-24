@@ -1,6 +1,6 @@
-package datatypes;
+package hardware.datatypes;
 
-import processor.MipsIsa;
+import hardware.MipsIsa;
 /**
  * Represent Register type instructions
  * @sammc

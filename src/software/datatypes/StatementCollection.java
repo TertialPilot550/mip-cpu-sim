@@ -1,15 +1,16 @@
-package datatypes;
+package software.datatypes;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Store a half parsed program. Used by the assembler
+ * Store a sorted but unparsed program. Used by the assembler
  */
 
 public class StatementCollection {
 	
-	public ArrayList<String> data;
-	public ArrayList<String> text;
+	public List<String> data;
+	public List<String> text;
 	
 	public StatementCollection() {
 		data = new ArrayList<String>();

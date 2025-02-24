@@ -1,24 +1,22 @@
-package software;
+package software.assembly;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Scanner;
 
-import datatypes.Instruction;
-import datatypes.R_Instruction;
-import datatypes.StaticDataElement;
-import datatypes.I_Instruction;
-import datatypes.J_Instruction;
-
-import processor.MipsIsa;
+import hardware.MipsIsa;
+import hardware.datatypes.I_Instruction;
+import hardware.datatypes.Instruction;
+import hardware.datatypes.J_Instruction;
+import hardware.datatypes.R_Instruction;
 
 /**
- * Class that can cleanly convert singular assembly statements and lists of statements.
+ * Class that can cleanly convert singular assembly statements and lists of 
+ * statements into machine code instructions in the for of integers
+ * 
+ * @sammc
  */
-
-public class Translator {
+public class InstructionTranslator {
 
 	/**
 	 * Translate a list of mips assembly statements into a list of integers representing the instructions
@@ -51,110 +49,6 @@ public class Translator {
 		return ins.value;
 	}
 	
-	
-	public HashMap<String, Integer[]> translateDataStatements(ArrayList<String> statements) throws Exception {
-		HashMap<String, Integer[]> staticData = new HashMap<String, Integer[]>();
-				
-		for (String statement: statements) {
-			StaticDataElement e = translateData(statement);
-			staticData.put(e.label, e.values);
-		}
-		
-		return staticData;
-	}
-	
-	
-	// parse one line of static data declaration
-	
-	// I can pass the type and 
-	
-	// .word, .space(general storage), .asciiz
-	// for now, assume that everything is clean in this statement, so the following format:
-	// label: .type "value"
-	public StaticDataElement translateData(String statement) throws Exception {
-		Scanner scan = new Scanner(statement);
-		
-		if (!scan.hasNext()) {
-			scan.close();
-			throw new Exception("Error parsing static data, improper number of element per line.");
-		}
-		
-		
-		String label = scan.next();
-		
-		
-		if (!scan.hasNext()) {
-			scan.close();
-			throw new Exception("Error parsing static data, improper number of element per line.");
-		}
-		
-		String type = scan.next();
-		
-		if (!scan.hasNext()) {
-			scan.close();
-			throw new Exception("Error parsing static data, improper number of element per line.");
-		}
-		
-		// take the rest of the values to parse them into a proper list of values that will be inserted into memory
-		// based on it's length and associated with it's label
-		String values = scan.nextLine();
-		int[] wordValues = encodeData(type, values);
-		
-		scan.close();
-		
-		return new StaticDataElement(label, wordValues);
-		
-		
-		
-	}
-	
-	
-	// expecting a string of format x, y, z where x y z and z are the appropriate types
-	private int[] encodeData(String type, String values) throws Exception {
-		String[] v = values.split(",");
-		int[] result = null;
-		
-		if (type.equals(".space")) {
-			int numReservedWords = Integer.parseInt(values);
-			result = new int[numReservedWords];
-		} else if (type.equals(".asciiz")) {
-			
-			// take off first and last characters
-			String valueNoQuotes = values.substring(1, values.length() - 2);
-			
-			// Assign result size
-			result = new int[valueNoQuotes.length() + 1]; // null terminate
-			result[valueNoQuotes.length()] = 0;
-			
-			// For each character, put the numeric value at the next spot starting at index 0
-			int i = 0;
-			for (char c : valueNoQuotes.toCharArray()) {
-				result[i++] = Character.getNumericValue(c);
-			}
-			
-			
-		} else if (type.equals(".word")) {
-			result = new int[v.length];
-		
-			for (int i = 0; i < v.length; i++) {
-				String sVal = v[i].trim();
-			
-				
-				
-				if (sVal.endsWith(",")) {
-					sVal = sVal.substring(0, sVal.length() - 1);
-				}
-			
-			
-				result[i] = Integer.parseInt(sVal);
-			}
-		
-		}
-	
-		return result;
-		
-		
-	}
 	
 	
 	// ------------------------------------------------------------------
