@@ -4,10 +4,10 @@ import hardware.datatypes.I_Instruction;
 import hardware.datatypes.Instruction;
 import hardware.datatypes.J_Instruction;
 import hardware.datatypes.R_Instruction;
+import hardware.exceptions.InstructionNotSupportedException;
 
 public interface MipsIsa {
 
-	
 	public final int NUMBER_OF_REGISTERS = 32;
 	
 	public final int $0 = 0;
@@ -47,7 +47,7 @@ public interface MipsIsa {
 	public final int gp  = 28;
 	public final int sp = 29;
 	public final int fp = 30;
-	final int ra = 31;
+	public final int $ra = 31;
 	
 	/**
 	 * Execute an instruction on this object which implements
@@ -135,15 +135,19 @@ public interface MipsIsa {
 	public void ori(int Rd, int Rs, int Immediate);
 	public void beq(int Rd, int Rs, int Immediate);
 	public void bne(int Rd, int Rs, int Immediate);
-	public void lbu(int Rd, int Rs, int Immediate);
-	public void lhu(int Rd, int Rs, int Immediate);
-	public void ll(int Rd, int Rs, int Immediate);
+	public void lbu(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException;
+	public void lhu(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException;
+	public void ll(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException;
 	public void lui(int Rd, int Immediate);
 	public void lw(int Rd, int Rs, int Immediate);
-	public void sb(int Rd, int Rs, int Immediate);
-	public void sc(int Rd, int Rs, int Immediate);
-	public void sh(int Rd, int Rs, int Immediate);
+	public void sb(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException;
+	public void sc(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException;
+	public void sh(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException;
 	public void sw(int Rd, int Rs, int Immediate);
+	
+	public void sltiu(int rs, int rt, int immediate);
+	public void slti(int rs, int rt, int immediate);
+
 	default void executeIType(I_Instruction instruction) {		
 		switch (instruction.opcode) {
 		case 0x8:
@@ -171,10 +175,10 @@ public interface MipsIsa {
 			ori(instruction.rs, instruction.rt, instruction.immediate);
 			return;
 		case 0xa:
-			//slti(Rs, Rt, Immediate); TODO
+			slti(instruction.rs, instruction.rt, instruction.immediate); 
 			return;
 		case 0xb:
-			//sltiu(Rs, Rt, Immediate); TODO
+			sltiu(instruction.rs, instruction.rt, instruction.immediate); 
 			return;
 		case 0x2b:
 			sw(instruction.rs, instruction.rt, instruction.immediate);
@@ -182,6 +186,7 @@ public interface MipsIsa {
 		}
 	}
 	
+
 	// J-Type
 	void jal(int addr);
 	void j(int addr);
@@ -196,7 +201,7 @@ public interface MipsIsa {
 	
 	/*
 	 * 
-	 * Simple translation functions
+	 * Translation functions
 	 * 
 	 */
 	
@@ -375,8 +380,6 @@ public interface MipsIsa {
 		case "subu":
 		case "jr":
 			return 0x0;
-			
-			
 			
 		case "addi":
 			return 0x8;

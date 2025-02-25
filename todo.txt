@@ -1,13 +1,7 @@
-Incorporate jump instructions
-
-
-Finish cpu class
-
-write some tests for assembler and stuff cuz im damn sure thats gonna make the project impossible if i dont get it right
-
 
 Linker
 
-FIX EXCEPTIONS! Write exceptions classes,
-tests for assembly and linkage
+write some tests for assembler
+
+Write exceptions classes and tests for assembly and linkage
 

@@ -1,7 +1,10 @@
-package hardware;
+package hardware.cpu;
 
-
+import hardware.MipsIsa;
+import hardware.SimulatedComputer;
 import hardware.datatypes.Instruction;
+import hardware.exceptions.HardwareMemoryLoadException;
+import hardware.exceptions.InstructionNotSupportedException;
 import hardware.exceptions.OverflowException;
 import software.datatypes.Program;
 
@@ -12,11 +15,9 @@ import software.datatypes.Program;
  * 
  * @sammc
  */
-
-public class CPU implements MipsIsa {
+public class CPU implements MipsIsa, SimulatedComputer {
 	
-	// Debug mode?
-	public static final boolean debug_mode = true;
+	public boolean debug_mode = true; // Debug Mode
 	
 	// RAM Details
 	public static final int PC_STARTING_ADDRESS = 0x0040_0000; 
@@ -28,50 +29,24 @@ public class CPU implements MipsIsa {
 	private int R[]; // Registers
 	private int M[]; // Random Access Memory
 	private int PC;  // Program Counter
-	// TODO to store permanent information, use files in a directory in the project
 	
+	/*
+	 * Public Interface
+	 */
 	
+	// Constructor
 	public CPU() {
 		PC = PC_STARTING_ADDRESS;          // Initialize Program Counter
 		R = new int[NUMBER_OF_REGISTERS];   // Initialize Registers
 		M = new int[RAM_ADDRESS_SPACE]; // Initialize memory 2^18 ~ 262 kb
 	}
 	
-	// start executing code in a fetch decode execute cycle starting at the default address of 0x0100
+	@Override
 	public void start() {		
 		fetchExecuteLoop();
 	}
 	
-	/**
-	 * Main loop for function of the cpu
-	 */
-	private void fetchExecuteLoop() {
-		int i = 0; // cycle count
-		while (PC <= STATIC_DATA) {							// run	
-			Instruction ins = new Instruction(M[PC]);		// fetch
-			
-			if (debug_mode) {
-				System.out.printf("[%d] Instruction: %x - %s\n", i, ins, ins.getASM());
-			}
-			
-			
-			if (ins.value == 0xFFFFFFFF)   	// Sentinel, halt program execution
-				break;
-			
-			execute(ins);			// execute
-			PC++;
-			i++;
-		}
-		// Print State upon exit
-		printState();
-	}
-	
-	/**
-	 * Loads a assembled and linked program object into the cpu simulation's memory at the default text address
-	 * 
-	 * @param p
-	 * @throws Exception 
-	 */
+	@Override
 	public void loadProgram(Program p) throws Exception {
 		if (p.bin.length >= STATIC_DATA - PC_STARTING_ADDRESS) { 
 			throw new Exception("Program too large, load failed.");
@@ -82,11 +57,65 @@ public class CPU implements MipsIsa {
 		// load static data
 		loadMemory(p.staticData, STATIC_DATA);
 		// load instructions
-		loadMemory(p.bin , PC_STARTING_ADDRESS);
+		loadMemory(p.bin, PC_STARTING_ADDRESS);
+	}
+
+	/*
+	 * Internal Methods 
+	 */
+	
+	/**
+	 * Main loop for function of the cpu
+	 */
+	private void fetchExecuteLoop() {
+		int i = 0; // cycle count
+		while (PC <= STATIC_DATA) {	// while there are valid instructions left	
+			Instruction ins = new Instruction(M[PC]); // fetch
+			
+			// Debug: Print the instruction fetched
+			if (debug_mode) System.out.printf("[%d] Instruction: %x - %s\n", i, ins, ins.getASM());
+			
+			
+			if (ins.value == 0xFFFFFFFF) // Sentinel, halt program execution
+				break;
+			
+			execute(ins); // execute
+			PC++;
+			i++;
+		}
+		// Print State upon exit
+		if (debug_mode) printState();
 	}
 	
+	/**
+	 *  Loads the given array of Integer values into memory starting at
+	 *  the provided address.
+	 *  
+	 *  @param ArrayList<Integer> pay load, to load into memory at...
+	 *  @param int address
+	 * @throws Exception 
+	 */
+	private void loadMemory(int[] data, int address) throws Exception {
+		// If the pay load is too large for it's specified place in memory...
+		if (data.length + address > M.length) {
+			// then don't do it
+			throw new HardwareMemoryLoadException(address);
+		}
+		
+		// otherwise load it up!
+		for (int i = 0; i < data.length; i++) {
+			M[address + i] = data[i];
+		}
+	}
+	
+	// -------------------------------------------------------------------------------- //
+	
+	/*
+	 * Instruction Definitions
+	 */
+	
 	@Override
-	public void add(int Rd, int Rs, int Rt) throws Exception {
+	public void add(int Rd, int Rs, int Rt) throws OverflowException {
 		R[Rd] = R[Rs] + R[Rt]; 
 		
 		boolean didOverflow = (R[Rs] < 0 && R[Rt] < 0 && R[Rd] > 0) || (R[Rs] > 0 && R[Rt] > 0 && R[Rd] < 0);
@@ -124,19 +153,27 @@ public class CPU implements MipsIsa {
 	public void slt(int Rd, int Rs, int Rt) {
 		R[Rd] = (Rs < Rt) ? 1 : 0; 
 	}
+	
+	@Override
+	public void sltiu(int rs, int rt, int immediate) {
+		R[rs] = (rt < Integer.toUnsignedLong(immediate)) ? 1 : 0; 
+	}
+
+	@Override
+	public void slti(int rs, int rt, int immediate) {
+		R[rs] = (rt < immediate) ? 1 : 0; 		
+	}
 
 	@Override
 	public void sltu(int Rd, int Rs, int Rt) {
 		R[Rd] = (Integer.toUnsignedLong(Rs) < Integer.toUnsignedLong(Rt)) ? 1 : 0;
 	}
 	
-
 	@Override
 	public void sll(int Rd, int Rs, int shamt) {
 		R[Rd] = R[Rs] << shamt;
 	}
 	
-
 	@Override
 	public void srl(int Rd, int Rs, int shamt) {
 		R[Rd] = R[Rs] >> shamt;
@@ -177,11 +214,11 @@ public class CPU implements MipsIsa {
 		
 	}
 
-	@Override // TODO FIX THIS TO DO RELATIVE ADDRESSING
+	@Override 
 	public void beq(int Rs, int Rt, int Immediate) {
 		if (R[Rs] == R[Rt]) {
 			// branch
-			PC = Immediate;
+			PC += Immediate;
 		}
 	}
 
@@ -189,26 +226,24 @@ public class CPU implements MipsIsa {
 	public void bne(int Rs, int Rt, int Immediate) {
 		if (R[Rs] != R[Rt]) {
 			// branch
-			PC = Immediate;
+			PC += Immediate;
 		}
 	}
 
 	@Override
-	public void lbu(int Rd, int Rs, int Immediate) {
-		// TODO Auto-generated method stub
+	public void lbu(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException {
+		throw new InstructionNotSupportedException();
 		
 	}
 
 	@Override
-	public void lhu(int Rd, int Rs, int Immediate) {
-		// TODO Auto-generated method stub
-		
+	public void lhu(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException {
+		throw new InstructionNotSupportedException();
 	}
 
 	@Override
-	public void ll(int Rd, int Rs, int Immediate) {
-		// TODO Auto-generated method stub
-		
+	public void ll(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException {
+		throw new InstructionNotSupportedException();
 	}
 
 	@Override
@@ -222,21 +257,18 @@ public class CPU implements MipsIsa {
 	}
 
 	@Override
-	public void sb(int Rd, int Rs, int Immediate) {
-		// TODO Auto-generated method stub
-		
+	public void sb(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException{
+		throw new InstructionNotSupportedException	();	
 	}
 
 	@Override
-	public void sc(int Rd, int Rs, int Immediate) {
-		// TODO Auto-generated method stub
-		
+	public void sc(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException {
+		throw new InstructionNotSupportedException();
 	}
 
 	@Override
-	public void sh(int Rd, int Rs, int Immediate) {
-		// TODO Auto-generated method stub
-		
+	public void sh(int Rd, int Rs, int Immediate) throws InstructionNotSupportedException{
+		throw new InstructionNotSupportedException();
 	}
 
 	@Override
@@ -244,38 +276,29 @@ public class CPU implements MipsIsa {
 		M[R[Rs] + Immediate] = R[Rd];	
 	}
 
-	@Override // TODO this is not right
+	@Override 
 	public void jal(int addr) {
-		R[$at] = PC + 1;
-		PC = addr;
+		R[$ra] = PC + 1;
+		PC = getTrueJAddress(addr);	
 	}
-
-	@Override // TODO this is not right
+	
+	@Override 
 	public void j(int addr) {
-		PC = addr;
+		PC = getTrueJAddress(addr);
 	}
 	
-	/**
-	 *  Loads the given array of Integer values into memory starting at
-	 *  the provided address.
-	 *  
-	 *  @param ArrayList<Integer> pay load, to load into memory at...
-	 *  @param int address
-	 * @throws Exception 
+	private int getTrueJAddress(int addrImmediate) {
+		int PCPart = PC & 0xFF000000; // 32 bit number, keep the first 2 bytes, clear the rest
+		return (PCPart + addrImmediate);
+	}
+	
+	
+	
+	// -------------------------------------------------------------------------------- //
+	
+	/*
+	 * DEBUG: 
 	 */
-	public void loadMemory(int[] instructions, int address) throws Exception {
-		// If the pay load is too large for it's specified place in memory...
-		if (instructions.length + address > M.length) {
-			// then don't do it
-			throw new Exception("Not enough room for memory load at address " + address);
-		}
-		
-		// otherwise load it up!
-		for (int i = 0; i < instructions.length; i++) {
-			M[address + i] = instructions[i];
-		}
-	}
-	
 	
 	private void printState() {
 		
@@ -309,7 +332,6 @@ public class CPU implements MipsIsa {
 
 	}
 
-
 	
-
+	
 }

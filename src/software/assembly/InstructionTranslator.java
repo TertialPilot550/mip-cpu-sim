@@ -12,7 +12,9 @@ import hardware.datatypes.R_Instruction;
 
 /**
  * Class that can cleanly convert singular assembly statements and lists of 
- * statements into machine code instructions in the for of integers
+ * statements into machine code instructions in the for of integers. 
+ * 
+ * Deal with the difficult string parsing bits in a separate place.
  * 
  * @sammc
  */
@@ -24,8 +26,8 @@ public class InstructionTranslator {
 	 * @return
 	 * @throws Exception
 	 */
-	public List<Integer> translateTextStatements(List<String> statements) throws Exception {
-		List<Integer> programInstructions = new ArrayList<Integer>();
+	public List<Instruction> translateTextStatements(List<String> statements) throws Exception {
+		List<Instruction> programInstructions = new ArrayList<Instruction>();
 		for (String statement : statements) {
 			programInstructions.add(translateText(statement));
 		}
@@ -35,25 +37,40 @@ public class InstructionTranslator {
 	// ------------------------------------------------------------------
 	
 	/**
-	 * Translate one instruction of mips assembly into an integer representing the instruction
+	 * High Level Function that translates one instruction of mips assembly 
+	 * into an Instruction Object
 	 * @param statement
 	 * @return instruction
 	 * @throws Exception upon failure to translate
 	 */
-	private int translateText(String statement) throws Exception {	
+	private Instruction translateText(String statement) throws Exception {	
+		
+		// extract label if present
+		String label = "";
+		boolean containsLabel = statement.contains(":");
+		if (containsLabel) { // Remove it.
+			String[] fields = statement.split(":");
+			statement = fields[1].trim();
+			// Also create a new Label string and add it to the list 
+			// (format is label:i, where i is the index in the list of statements)
+			label = fields[0];
+		}
+		
 		Instruction ins = parseStatement(statement);
 		
+		// add label if necessary
+		ins.isLabeled = containsLabel;
+		ins.label = label;
+
+		
 		// if opcode is 0b11_1111, return 0xFFFF to signal that the program should halt
-		if (ins.opcode == 0x3F) return 0xFFFF_FFFF;
 		
 		// Otherwise, return the value of the instruction
-		return ins.value;
+		return ins;
 	}
 	
 	
-	/*
-	 * Simple translating back and forth as utility functions before i continue to rebuild
-	 */
+	
 	
 	private Instruction parseStatement(String statement) throws Exception {
 		String[] fields = statement.split(" ");
@@ -79,6 +96,12 @@ public class InstructionTranslator {
 		}
 	}
 
+	/**
+	 * Given a list of String fields, returns a valid R-Type instruction or throws an exception.
+	 * @param fields
+	 * @return
+	 * @throws Exception
+	 */
 	private Instruction parseRType(String[] fields) throws Exception {		
 		// opcode (31:26) Rs(25:21) Rt (20:16) Rd (15:11) shamt (10:6) funct (5:0)
 		
@@ -111,6 +134,7 @@ public class InstructionTranslator {
 	
 		return new R_Instruction(rs, rt, rd, shamt, func);
 	}
+	
 	// assumes valid instruction syntax
 	private Instruction parseIType(String[] fields) throws Exception {
 		
@@ -124,7 +148,6 @@ public class InstructionTranslator {
 		boolean usesLabel = !Character.isDigit(fields[3].charAt(0));
 		boolean memoryOp = opcode == MipsIsa.getOpcode("lw") || opcode == MipsIsa.getOpcode("sw");
 		if (memoryOp) {
-			
 			
 			String[] t = fields[2].split("\\(");
 			
@@ -149,7 +172,10 @@ public class InstructionTranslator {
 		}
 		
 		I_Instruction result = new I_Instruction(opcode, rs, rt, immediate);
-		result.usesLabel = usesLabel;
+		if (usesLabel) {
+			result.labelOperand = fields[3];
+		}
+		
 		return result;
 	}
 	private Instruction parseJType(String[] fields) {		

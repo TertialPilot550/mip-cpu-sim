@@ -14,6 +14,9 @@ public class I_Instruction extends Instruction {
 	public int rt;
 	public int immediate;
 	
+	public String labelOperand;
+	public boolean hasLabelImm;
+	
 	// Construct from components
 	public I_Instruction(int opcode, int rs, int rt, int immediate) {
 		super(-1);
@@ -36,9 +39,25 @@ public class I_Instruction extends Instruction {
 		immediate = copyBitField(instruction, 15, 0);
 	}
 	
+	public boolean isBranch() {
+		return (opcode == 4 || opcode == 5);
+	}
+	
 	@Override
 	public String getASM() {
 		return "(op:" + MipsIsa.getInstructionName(this) + ", rs:" + rs + ", rt:" + rt + ", immediate:" + immediate + ")";
+	}
+
+	public void updateValue() {
+		int instruction = 0;
+
+		instruction += (opcode << 26);
+		instruction += (rs << 21);
+		instruction += (rt << 16);
+		instruction += immediate;
+				
+		this.value = instruction;
+		
 	}
 	
 }

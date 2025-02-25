@@ -1,10 +1,15 @@
 package software.datatypes;
 
-import java.util.Map;
+import java.util.List;
+
+import hardware.datatypes.Instruction;
+
+/**
+ * The product of the assembler, 
+ */
 
 public class Protogram {
 
-	public int[] textBin;
-	public Map<String, Integer> labelTable;
-	public int[] dataBin;
+	public List<Instruction> instructions;
+	public List<StaticData> data;
 }

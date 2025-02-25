@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import software.datatypes.StaticDataElement;
+import software.datatypes.StaticData;
 
 
 /**
- * Create an instance of the StaticDataElement class from String 'statements' of the form
+ * Create an instance of the StaticData class from String 'statements' of the form
  * 
  * "LABEL: .type value"
  * "LABEL: .type value1, ..., valueN"
@@ -19,7 +19,7 @@ import software.datatypes.StaticDataElement;
  * 
  * @sammc
  */
-public class StaticDataElementFactory {
+public class StaticDataFactory {
 	
 	/**
 	 * Translate a list of data statements, with the provided format in this classes description.
@@ -27,8 +27,8 @@ public class StaticDataElementFactory {
 	 * @return
 	 * @throws Exception
 	 */
-	public List<StaticDataElement> translateDataStatements(List<String> statements) throws Exception {
-		List<StaticDataElement> staticData = new ArrayList<StaticDataElement>();
+	public List<StaticData> translateDataStatements(List<String> statements) throws Exception {
+		List<StaticData> staticData = new ArrayList<StaticData>();
 				
 		for (String statement: statements) {
 			staticData.add(translateData(statement));
@@ -52,7 +52,7 @@ public class StaticDataElementFactory {
 	 * @return
 	 * @throws Exception
 	 */
-	public StaticDataElement translateData(String statement) throws Exception {
+	public StaticData translateData(String statement) throws Exception {
 		Scanner scan = new Scanner(statement);
 		
 		if (!scan.hasNext()) {
@@ -83,7 +83,7 @@ public class StaticDataElementFactory {
 		
 		scan.close();
 		
-		return new StaticDataElement(label, wordValues);
+		return new StaticData(label, wordValues);
 		
 		
 		

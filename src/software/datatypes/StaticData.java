@@ -1,11 +1,11 @@
 package software.datatypes;
 
-public class StaticDataElement {
+public class StaticData {
 	
 	public String label;
 	public Integer[] values;
 	
-	public StaticDataElement(String label, int[] values) {
+	public StaticData(String label, int[] values) {
 		this.label = label;
 		
 		this.values = new Integer[values.length];

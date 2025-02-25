@@ -10,13 +10,15 @@ import hardware.MipsIsa;
 public class J_Instruction extends Instruction {
 	public int address;
 	
+	public String labelOperand;
+	public boolean hasLabelImm;
+	
 	// Construct from components
 	public J_Instruction(int opcode, int address) {
 		super(-1);
-		this.usesLabel = true;
+		this.isLabeled = true;
 		int instruction = 0;
 
-		// opcode is always zero
 		instruction += (opcode << 26);
 		instruction += address;
 				
@@ -26,10 +28,20 @@ public class J_Instruction extends Instruction {
 	// Construct from integer
 	public J_Instruction(int instruction) {
 		super(instruction);
-		this.usesLabel = true;
+		this.isLabeled = true;
 		// Find fields
 		opcode = copyBitField(instruction, 31, 26);
 		address = copyBitField(instruction, 25, 0);
+	}
+	
+	public void updateValue() {
+		int instruction = 0;
+
+		instruction += (opcode << 26);
+		instruction += address;
+				
+		this.value = instruction;
+		
 	}
 	
 	

@@ -1,7 +1,7 @@
 
 package _main;
 
-import hardware.CPU;
+import hardware.cpu.CPU;
 import software.assembly.Assembler;
 import software.datatypes.Program;
 import software.datatypes.Protogram;
@@ -16,7 +16,7 @@ public class Simulator {
 		
 	// init static resources
 	private static void init() {
-		asm = new Assembler();
+		asm = new software.assembly.Assembler();
 		cpu = new CPU();
 	}
 	
