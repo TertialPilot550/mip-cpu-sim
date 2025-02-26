@@ -7,5 +7,5 @@ public class HardwareMemoryLoadException extends Exception {
 	public HardwareMemoryLoadException(int address) {
 		super("HARDWARE MEMORY LOADING FAILURE. Not enough space found at address: " + address);
 	}
-	
+
 }

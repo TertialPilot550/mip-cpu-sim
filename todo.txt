@@ -1,7 +1,0 @@
-
-Linker
-
-write some tests for assembler
-
-Write exceptions classes and tests for assembly and linkage
-
